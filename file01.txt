@@ -1,1 +1,2 @@
 Some variables will be stored here.
+a = 1
