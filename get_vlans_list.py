@@ -22,7 +22,11 @@ table_vlans.add_column("NAME", style="magenta")
 table_vlans.add_column("DESCRIPTION", style="green")
 table_vlans.add_column("SITE", style="blue")
 for vl in range (number_vlans):
-     table_vlans.add_row(str(output_vlans['results'][vl]['vid']), output_vlans['results'][vl]['name'], output_vlans['results'][vl]['description'], output_vlans['results'][vl]['site']['name'])
+  table_vlans.add_row(str(output_vlans['results'][vl]['vid']), output_vlans['results'][vl]['name'], output_vlans['results'][vl]['description'], output_vlans['results'][vl]['site']['name'])
 
 console = Console()
 console.print(table_vlans)
+
+# for vl in range (number_vlans):
+#   pprint(output_vlans['results'][vl]['name'])
+#   pprint('------------')
