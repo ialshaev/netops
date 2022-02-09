@@ -21,21 +21,8 @@ table_vlans.add_column("VLAN ID", justify="center", style="cyan", no_wrap=True)
 table_vlans.add_column("NAME", style="magenta")
 table_vlans.add_column("DESCRIPTION", style="green")
 table_vlans.add_column("SITE", style="blue")
-for vl in vlans_output['results']:
-     table_vlans.add_row(str(vl.vid), v.name, v.description)
+for vl in range (vlans_number):
+     table_vlans.add_row(str(vlans_output['results'][vl]['vid']), vlans_output['results'][vl]['name'], vlans_output['results'][vl]['description'], vlans_output['results'][vl]['site']['name'])
+
 console = Console()
 console.print(table_vlans)
-
-# vlans = {}
-# descriptions = {}
-# for i in range (vlans_number):
-#     pprint(vlans_output['results'][i]['name'])
-#     pprint(vlans_output['results'][i]['description'])
-#     pprint(vlans_output['results'][i]['site']['name'])
-#     pprint('---------')
-
-# for i in range (vlans_number):    
-#     vlans[i] = "vlans_output['results'][i]['name']"
-#     descriptions[i] = "vlans_output['results'][i]['description']"
-# print(vlans)
-# print(descriptions)
