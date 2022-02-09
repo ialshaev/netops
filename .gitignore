@@ -1,1 +1,3 @@
-file01.txt
+bin/
+lib/
+pyvenv.cfg
