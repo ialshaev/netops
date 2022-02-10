@@ -65,3 +65,9 @@ interface GigabitEthernet0/2
  media-type rj45
  negotiation auto
 end
+
+!!!
+For improvements:
+- use multithreading
+- define functions
+- use main() ?
