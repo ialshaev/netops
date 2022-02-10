@@ -1,3 +1,5 @@
+The switchconfig.py script implies to gather VLAN information from IPAM system - NetBox and use these information further to configure switchports
+
 the switchconfig.py execution result:
 
 19:59 $ ./switchconfig.py 
