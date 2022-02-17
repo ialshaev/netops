@@ -77,10 +77,10 @@ print(vlans_name_list)
 pprint('--------------------------------')
 
 ###IP address availability scan###
-# pprint('SCANNING FOR IP ADDRESS AVAILABILITY')
-# for ip in ip_addr_list:
-#     pingresult = check_availability(ip)
-#     print(pingresult)
+pprint('SCANNING FOR IP ADDRESS AVAILABILITY')
+for ip in ip_addr_list:
+    pingresult = check_availability(ip)
+    print(pingresult)
 
 ###Define admin credentials###
 pprint('PROVIDE ADMIN CREDENTIALS')
