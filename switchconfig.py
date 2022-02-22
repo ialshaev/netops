@@ -76,36 +76,36 @@ print(vlans_id_list)
 print(vlans_name_list)
 pprint('--------------------------------')
 
-###IP address availability scan###
-pprint('SCANNING FOR IP ADDRESS AVAILABILITY')
-for ip in ip_addr_list:
-    pingresult = check_availability(ip)
-    print(pingresult)
+# ###IP address availability scan###
+# pprint('SCANNING FOR IP ADDRESS AVAILABILITY')
+# for ip in ip_addr_list:
+#     pingresult = check_availability(ip)
+#     print(pingresult)
 
-###Define admin credentials###
-pprint('PROVIDE ADMIN CREDENTIALS')
-username = input('login: ')
-password = input('password: ')
+# ###Define admin credentials###
+# pprint('PROVIDE ADMIN CREDENTIALS')
+# username = input('login: ')
+# password = input('password: ')
 
-###Create VLANs on switches###
-pprint('PUSH VLAN CONFIGURATION')
-for ip in ip_addr_list:
-    for v,n in zip(vlans_id_list,vlans_name_list):
-        push_config_vlan(ip,v,n,username,password)
+# ###Create VLANs on switches###
+# pprint('PUSH VLAN CONFIGURATION')
+# for ip in ip_addr_list:
+#     for v,n in zip(vlans_id_list,vlans_name_list):
+#         push_config_vlan(ip,v,n,username,password)
 
-###Assign VLANs on 5 switches###
-pprint('PUSH SWITCHPORT CONFIGURATION')
-intf = ['gi0/2', 'gi0/3']
-for int in intf:
-    for ip in ip_addr_list:
-        push_config_switchport(ip,int,username,password)
+# ###Assign VLANs on 5 switches###
+# pprint('PUSH SWITCHPORT CONFIGURATION')
+# intf = ['gi0/2', 'gi0/3']
+# for int in intf:
+#     for ip in ip_addr_list:
+#         push_config_switchport(ip,int,username,password)
 
-##Verify###
-# ip = str(input('SWITCH IP: '))
-ip = '192.168.246.242'
-pprint(f'DISPLAY CONFIGURATION FOR {ip}')
-commands = ['sh vlan bri', 'sh run int gi0/3']
-for cmd in commands:
-    device = ConnectHandler(device_type='cisco_ios', ip=ip, username=username, password=password)
-    output = device.send_command(cmd)
-    print(output)
+# ##Verify###
+# # ip = str(input('SWITCH IP: '))
+# ip = '192.168.246.242'
+# pprint(f'DISPLAY CONFIGURATION FOR {ip}')
+# commands = ['sh vlan bri', 'sh run int gi0/3']
+# for cmd in commands:
+#     device = ConnectHandler(device_type='cisco_ios', ip=ip, username=username, password=password)
+#     output = device.send_command(cmd)
+#     print(output)
