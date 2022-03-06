@@ -4,17 +4,6 @@ from inventory import devices
 from netmiko import ConnectHandler
 import getpass
 
-# def send_cmd(device):
-#     with IOSXEDriver(
-#         host = device["host"],
-#         auth_username="cisco",
-#         auth_password="cisco",
-#         auth_strict_key=False,
-#         ssh_config_file=True,
-#     ) as conn:
-#         response = conn.send_command("show int status")
-#         print(response.result)
-
 def send_cmd(device,login,password,cmd):
     conn_params = {
         "device_type": "cisco_ios_ssh",
@@ -25,7 +14,6 @@ def send_cmd(device,login,password,cmd):
     with ConnectHandler(**conn_params) as conn:
         response = conn.send_command(cmd)
         print(response)
-    # connection = ConnectHandler(**conn_params)
 
 
 if __name__ == "__main__":
