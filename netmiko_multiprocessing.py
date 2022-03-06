@@ -1,12 +1,8 @@
 from multiprocessing import Process
 from time import perf_counter
-from scrapli.driver.core import IOSXEDriver
-from inventory import DEVICES
+from inventory import devices
 from netmiko import ConnectHandler
-
-start = perf_counter()
-
-processes = []
+import getpass
 
 # def send_cmd(device):
 #     with IOSXEDriver(
@@ -19,21 +15,29 @@ processes = []
 #         response = conn.send_command("show int status")
 #         print(response.result)
 
-def send_cmd(device):
+def send_cmd(device,login,password,cmd):
     conn_params = {
         "device_type": "cisco_ios_ssh",
-        "host": "192.168.241.246",
-        "username": "cisco",
-        "password": "cisco",
-        "secret": "cisco",
+        "host": device,
+        "username": login,
+        "password": password
     }
     with ConnectHandler(**conn_params) as conn:
-        response = conn.send_show_command("show int status")
-        print(response.result)
+        response = conn.send_command(cmd)
+        print(response)
+    # connection = ConnectHandler(**conn_params)
+
 
 if __name__ == "__main__":
-    for device in DEVICES:
-        proc = Process(target=send_cmd, args=(device,))
+    cmd = input('Enter the command: ')
+    username = input("Login: ")
+    password = getpass.getpass()
+    processes = []
+    start = perf_counter()
+    for d in devices:
+        device = d['host']
+        name = d['hostname']
+        proc = Process(target=send_cmd, args=(device,username,password,cmd))
         processes.append(proc)
 
     for proc in processes:

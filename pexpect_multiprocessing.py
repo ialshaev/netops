@@ -15,8 +15,8 @@ def send_cmd (device,name,cmd,login,password):
     print(output)
 
 if __name__ == "__main__":
-    cmd = input('enter the command: ')
-    username = input("login: ")
+    cmd = input('Enter the command: ')
+    username = input("Login: ")
     password = getpass.getpass()
     processes = []
     start = perf_counter()
