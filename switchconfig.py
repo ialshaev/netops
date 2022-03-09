@@ -32,11 +32,11 @@ def rest(url):
     return(result)
 
 def check_availability(ip):
-    status = os.system('ping -c 1 ' + ip)
+    status = os.system('ping -c 1 -W 2 %s > /dev/null'%ip)
     if status == False:
-        pingresult = 'Available'
+        pingresult = ip + ' is Available'
     else:
-        pingresult = 'Unavailable'
+        pingresult = ip + ' is Unavailable'
     return(pingresult)
 
 if __name__ == "__main__":
@@ -79,11 +79,11 @@ if __name__ == "__main__":
     print(vlans_name_list)
     pprint('--------------------------------')
 
-    # ###IP address availability scan###
-    # pprint('SCANNING FOR IP ADDRESS AVAILABILITY')
-    # for ip in ip_addr_list:
-    #     pingresult = check_availability(ip)
-    #     print(pingresult)
+    ###IP address availability scan###
+    pprint('SCANNING FOR IP ADDRESS AVAILABILITY')
+    for ip in ip_addr_list:
+        res = check_availability(ip)
+        print(res)
 
     ###Define admin credentials###
     pprint('PROVIDE ADMIN CREDENTIALS')
@@ -92,31 +92,31 @@ if __name__ == "__main__":
 
     ###Create VLANs on switches###
     pprint('PUSH VLAN CONFIGURATION')
-    for ip in ip_addr_list:
-        process1 = []
-        for v,n in zip(vlans_id_list,vlans_name_list):
+    process1 = []
+    for v,n in zip(vlans_id_list,vlans_name_list):
+        for ip in ip_addr_list:
             proc = Process(target=push_config_vlan, args=(ip,v,n,username,password))
             process1.append(proc)
-
-        for proc in process1:
             proc.start()
+        proc.join()
 
-        for proc in process1:
-            proc.join()
+    ###Assign VLANs on 5 switches###
+    pprint('PUSH SWITCHPORT CONFIGURATION')
+    process2 = []
+    intf = ['gi0/2', 'gi0/3']
+    for int in intf:
+        for ip in ip_addr_list:
+            proc = Process(target=push_config_switchport, args=(ip,int,username,password))
+            process2.append(proc)
+            proc.start()
+        proc.join()
 
-    # ###Assign VLANs on 5 switches###
-    # pprint('PUSH SWITCHPORT CONFIGURATION')
-    # intf = ['gi0/2', 'gi0/3']
-    # for int in intf:
-    #     for ip in ip_addr_list:
-    #         push_config_switchport(ip,int,username,password)
-
-    # ##Verify###
-    # # ip = str(input('SWITCH IP: '))
-    # ip = '192.168.246.242'
-    # pprint(f'DISPLAY CONFIGURATION FOR {ip}')
-    # commands = ['sh vlan bri', 'sh run int gi0/3']
-    # for cmd in commands:
-    #     device = ConnectHandler(device_type='cisco_ios', ip=ip, username=username, password=password)
-    #     output = device.send_command(cmd)
-    #     print(output)
+    ##Verify###
+    # ip = str(input('SWITCH IP: '))
+    ip = '192.168.246.242'
+    pprint(f'DISPLAY CONFIGURATION FOR {ip}')
+    commands = ['sh vlan bri', 'sh run int gi0/3']
+    for cmd in commands:
+        device = ConnectHandler(device_type='cisco_ios', ip=ip, username=username, password=password)
+        output = device.send_command(cmd)
+        print(output)
