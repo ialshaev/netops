@@ -26,8 +26,8 @@ def check_config(ip,cmds,username,password):
         device.send_command(cmd)
         device.disconnect()
 
-def rest(url):
-    headers = {'Content-Type': 'application/json','Accept': 'application/json','Authorization': 'Token 0123456789abcdef0123456789abcdef01234567'}
+def rest(url,token):
+    headers = {'Content-Type': 'application/json','Accept': 'application/json','Authorization': token}
     result = requests.request("GET", url, headers=headers).json()
     return(result)
 
@@ -50,12 +50,32 @@ def create_table(n_vlans,vlans):
     console = Console()
     console.print(table_vlans)
 
+def config_check(username,password):
+    while True:
+        ip = str(input('\ntype the device ip address or Exit to end the check procedure: '))
+        if ip == 'Exit':
+            break
+        cmd = str(input('type the command or Exit to end the check procedure: '))
+        if cmd != 'Exit':     
+            device = ConnectHandler(device_type='cisco_ios', ip=ip, username=username, password=password)
+            output = device.send_command(cmd)
+            print(output)
+        else:
+            pprint('Ended')
+            break
+
 if __name__ == "__main__":
+    token = 'Token 0123456789abcdef0123456789abcdef01234567'
+    pprint('PROVIDE ADMIN CREDENTIALS') #Define admin credentials
+    username = input('Login: ')
+    password = getpass.getpass()
+
+
     pprint('STEP1: RETREIVING DEVICE INFORMATION')
     url_devices = "http://192.168.246.130:8000/api/dcim/devices/"
-    devices = rest(url_devices) #Retreive device information from NetBox
+    devices = rest(url_devices,token) #Retreive device information from NetBox
     n_devices = len(devices['results'])
-    # pprint(f'number of devices defined in NetBox: {n_devices}')
+    pprint(f'number of devices defined in NetBox: {n_devices}')
 
     pprint('STEP2: GENERATING IP ADDRESS LIST') # create the list of IP addresses
     ip_addr_list = []
@@ -66,9 +86,9 @@ if __name__ == "__main__":
 
     pprint('STEP3: GENERATING VLAN TABLE')
     url_vlans = "http://192.168.246.130:8000/api/ipam/vlans/"
-    vlans = rest(url_vlans) #Retreive VLAN information from NetBox and display result in table view
+    vlans = rest(url_vlans,token) #Retreive VLAN information from NetBox and display result in table view
     n_vlans = len(vlans['results'])
-    # pprint(f'number of VLANs defined in NetBox: {n_vlans}')
+    pprint(f'number of VLANs defined in NetBox: {n_vlans}')
     create_table(n_vlans,vlans)
 
     pprint('STEP4: GENERATING VLAN LISTS')
@@ -80,16 +100,12 @@ if __name__ == "__main__":
     print(vlans_id_list)
     print(vlans_name_list)
 
-    pprint('SCANNING FOR IP ADDRESS AVAILABILITY')
+    pprint('STEP5: SCANNING FOR IP ADDRESS AVAILABILITY')
     for ip in ip_addr_list:
         res = check_availability(ip) #IP address availability scan
         print(res)
 
-    pprint('PROVIDE ADMIN CREDENTIALS') #Define admin credentials
-    username = input('Login: ')
-    password = getpass.getpass()
-
-    pprint('PUSH VLAN CONFIGURATION')
+    pprint('STEP6: PUSH VLAN CONFIGURATION')
     process1 = []
     for v,n in zip(vlans_id_list,vlans_name_list):
         for ip in ip_addr_list:
@@ -98,7 +114,7 @@ if __name__ == "__main__":
             proc.start()
         proc.join()
 
-    pprint('PUSH SWITCHPORT CONFIGURATION')
+    pprint('STEP7: PUSH SWITCHPORT CONFIGURATION')
     process2 = []
     intf = ['gi0/2', 'gi0/3']
     for int in intf:
@@ -108,10 +124,5 @@ if __name__ == "__main__":
             proc.start()
         proc.join()
 
-    ip = str(input('SWITCH IP: ')) #Config verification
-    pprint(f'DISPLAY CONFIGURATION FOR {ip}')
-    commands = ['sh vlan bri', 'sh run int gi0/3']
-    for cmd in commands:
-        device = ConnectHandler(device_type='cisco_ios', ip=ip, username=username, password=password)
-        output = device.send_command(cmd)
-        print(output)
+    pprint('STEP8: VERIFY SWITCH CONFIGURATION')
+    config_check(username,password)
