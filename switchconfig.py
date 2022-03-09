@@ -20,24 +20,10 @@ def push_config_switchport(ip,int,username,password):
     device.send_config_set(portcli)
     device.disconnect()
 
-def check_config(ip,cmds,username,password):
-    for cmd in cmds:
-        device = ConnectHandler(device_type='cisco_ios', ip=ip, username=username, password=password)
-        device.send_command(cmd)
-        device.disconnect()
-
 def rest(url,token):
     headers = {'Content-Type': 'application/json','Accept': 'application/json','Authorization': token}
     result = requests.request("GET", url, headers=headers).json()
     return(result)
-
-def check_availability(ip):
-    status = os.system('ping -c 1 -W 2 %s > /dev/null'%ip)
-    if status == False:
-        pingresult = ip + ' is Available'
-    else:
-        pingresult = ip + ' is Unavailable'
-    return(pingresult)
 
 def create_table(n_vlans,vlans):
     table_vlans = Table(title="VLANs")
@@ -50,6 +36,14 @@ def create_table(n_vlans,vlans):
     console = Console()
     console.print(table_vlans)
 
+def check_availability(ip):
+    status = os.system('ping -c 1 -W 2 %s > /dev/null'%ip)
+    if status == False:
+        pingresult = ip + ' is Available'
+    else:
+        pingresult = ip + ' is Unavailable'
+    return(pingresult)
+
 def config_check(username,password):
     while True:
         ip = str(input('\ntype the device ip address or Exit to end the check procedure: '))
@@ -59,6 +53,7 @@ def config_check(username,password):
         if cmd != 'Exit':     
             device = ConnectHandler(device_type='cisco_ios', ip=ip, username=username, password=password)
             output = device.send_command(cmd)
+            device.disconnect()
             print(output)
         else:
             pprint('Ended')
