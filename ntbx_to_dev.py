@@ -8,6 +8,7 @@ from rich.table import Table
 from multiprocessing import Process
 import getpass
 
+
 def push_config_vlan(ip,v,n,username,password):
     device = ConnectHandler(device_type='cisco_ios', ip=ip, username=username, password=password)
     vlancli = [f'vlan {v}', f'name {n}']
@@ -16,7 +17,7 @@ def push_config_vlan(ip,v,n,username,password):
 
 def push_config_switchport(ip,int,username,password):
     device = ConnectHandler(device_type='cisco_ios', ip=ip, username=username, password=password)
-    portcli = [f'interface {int}', 'description **SPB-INFRASTRUCTURE cfg by netmiko**', 'switchport mode access', f'switchport access vlan 104']
+    portcli = [f'interface {int}', 'description **SPB-INFRASTRUCTURE cfg by netmiko**', 'switchport mode access', 'switchport access vlan 104']
     device.send_config_set(portcli)
     device.disconnect()
 
@@ -59,12 +60,12 @@ def config_check(username,password):
             pprint('Ended')
             break
 
+
 if __name__ == "__main__":
     token = 'Token 0123456789abcdef0123456789abcdef01234567'
     pprint('PROVIDE ADMIN CREDENTIALS') #Define admin credentials
     username = input('Login: ')
     password = getpass.getpass()
-
 
     pprint('STEP1: RETREIVING DEVICE INFORMATION')
     url_devices = "http://192.168.246.130:8000/api/dcim/devices/"
