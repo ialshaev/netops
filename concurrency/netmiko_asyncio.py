@@ -7,8 +7,8 @@ import getpass
 async def send_cmd(device): #such a type of function called 'coroutine'
     async with AsyncIOSXEDriver(
         host = device['host'],
-        auth_username = 'ilia.alshaev',
-        auth_password = 'ufNH9G63kzzk',
+        auth_username = 'username',
+        auth_password = 'password',
         auth_strict_key = False,
         ssh_config_file = True,
         transport = 'asyncssh',
