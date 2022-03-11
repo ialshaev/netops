@@ -1,5 +1,6 @@
 import asyncio
 from time import perf_counter
+from rich import print as rprint
 from inventory import devices
 from scrapli.driver.core import AsyncIOSXEDriver
 import getpass
@@ -7,20 +8,23 @@ import getpass
 async def send_cmd(device): #such a type of function called 'coroutine'
     async with AsyncIOSXEDriver(
         host = device['host'],
-        auth_username = 'username',
-        auth_password = 'password',
+        auth_username = 'cisco',
+        auth_password = 'cisco',
         auth_strict_key = False,
-        ssh_config_file = True,
-        transport = 'asyncssh',
+        transport = 'asyncssh'
     ) as conn:
-        response = await conn.send_command('show clock')
-        return response
+        response = await conn.send_command('show ip int bri | incl 192')
+        return response.result
 
 async def main():
     coroutines = [send_cmd(device) for device in devices]
     results = await asyncio.gather(*coroutines)
     for result in results:
-        print(result)
+        rprint(f'[green]=== {result} ===[/green]\n\n')
 
 if __name__ == "__main__":
+    start = perf_counter()
     asyncio.run(main())
+    end = perf_counter()
+    total_time = end - start
+    print(total_time)
