@@ -5,12 +5,12 @@ from netmiko import ConnectHandler
 from itertools import repeat
 import getpass
 
-def send_cmd(device,cmd):
+def send_cmd(device,login,password,cmd):
     conn_params = {
         "device_type": "cisco_ios_ssh",
         "host": device['host'],
-        "username": 'cisco',
-        "password": 'cisco'
+        "username": login,
+        "password": password
     }
     with ConnectHandler(**conn_params) as conn:
         response = conn.send_command(cmd)
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     start = perf_counter()
 
     with ThreadPoolExecutor() as executor:
-        results = executor.map(send_cmd, devices, repeat(cmd))
+        results = executor.map(send_cmd, devices, repeat(username), repeat(password), repeat(cmd))
 
     for output in results:
         print(output)
