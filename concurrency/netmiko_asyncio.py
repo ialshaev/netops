@@ -24,5 +24,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-    hmac-sha2-256,hmac-sha2-512
