@@ -23,14 +23,8 @@ async def main():
         rprint(f'[green]=== {result} ===[/green]\n\n')
 
 if __name__ == "__main__":
-<<<<<<< HEAD
-    asyncio.run(main())
-
-    hmac-sha2-256,hmac-sha2-512
-=======
     start = perf_counter()
     asyncio.run(main())
     end = perf_counter()
     total_time = end - start
     print(total_time)
->>>>>>> bf223ae... scrapli fix with add asyncio concurrency
