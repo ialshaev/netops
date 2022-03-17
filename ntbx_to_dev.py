@@ -89,7 +89,7 @@ def check_ip(ip_address_list):
             return res
 
 
-def show_cmd(username, password, dev_ip):
+def show_cmd(username, password, ip):
     while True:
         try:        
             cmd = str(input('\nEnter the command or exit/interrupt to end the check procedure. To change the device enter 0(zero): '))
@@ -105,7 +105,7 @@ def show_cmd(username, password, dev_ip):
                 return res
             else:
                 try:
-                    device = ConnectHandler(device_type='cisco_ios', ip=dev_ip, username=username, password=password)
+                    device = ConnectHandler(device_type='cisco_ios', ip=ip, username=username, password=password)
                     output = device.send_command(cmd)
                     device.disconnect()
                     if 'Invalid input detected' in output:
@@ -141,45 +141,45 @@ if __name__ == "__main__":
         ip_addr_list.append(ip[:-3])
     pprint('The list of ip addresses: %s'%ip_addr_list) # pprint(type(ip_addr_list[0])) --> check for the list element type, must be string
 
-    # pprint('STEP3: GENERATING VLAN TABLE')
-    # url_vlans = "http://192.168.246.130:8000/api/ipam/vlans/"
-    # vlans = rest(url_vlans,token) #Retreive VLAN information from NetBox and display result in table view
-    # n_vlans = len(vlans['results'])
-    # pprint(f'number of VLANs defined in NetBox: {n_vlans}')
-    # create_table(n_vlans,vlans)
+    pprint('STEP3: GENERATING VLAN TABLE')
+    url_vlans = "http://192.168.246.130:8000/api/ipam/vlans/"
+    vlans = rest(url_vlans,token) #Retreive VLAN information from NetBox and display result in table view
+    n_vlans = len(vlans['results'])
+    pprint(f'number of VLANs defined in NetBox: {n_vlans}')
+    create_table(n_vlans,vlans)
 
-    # pprint('STEP4: GENERATING VLAN LISTS')
-    # vlans_id_list = []
-    # vlans_name_list = []
-    # for vid,vname in zip(range(n_vlans),range(n_vlans)):
-    #     vlans_id_list.append(vlans['results'][vid]['vid'])
-    #     vlans_name_list.append(vlans['results'][vname]['name'])
-    # print(vlans_id_list)
-    # print(vlans_name_list)
+    pprint('STEP4: GENERATING VLAN LISTS')
+    vlans_id_list = []
+    vlans_name_list = []
+    for vid,vname in zip(range(n_vlans),range(n_vlans)):
+        vlans_id_list.append(vlans['results'][vid]['vid'])
+        vlans_name_list.append(vlans['results'][vname]['name'])
+    print(vlans_id_list)
+    print(vlans_name_list)
 
-    # pprint('STEP5: SCANNING FOR IP ADDRESS AVAILABILITY')
-    # for ip in ip_addr_list:
-    #     res = check_availability(ip) #IP address availability scan
-    #     print(res)
+    pprint('STEP5: SCANNING FOR IP ADDRESS AVAILABILITY')
+    for ip in ip_addr_list:
+        res = check_availability(ip) #IP address availability scan
+        print(res)
 
-    # pprint('STEP6: PUSH VLAN CONFIGURATION')
-    # process1 = []
-    # for v,n in zip(vlans_id_list,vlans_name_list):
-    #     for ip in ip_addr_list:
-    #         proc = Process(target=push_config_vlan, args=(ip,v,n,username,password)) #Create VLANs on switches
-    #         process1.append(proc)
-    #         proc.start()
-    #     proc.join()
+    pprint('STEP6: PUSH VLAN CONFIGURATION')
+    process1 = []
+    for v,n in zip(vlans_id_list,vlans_name_list):
+        for ip in ip_addr_list:
+            proc = Process(target=push_config_vlan, args=(ip,v,n,username,password)) #Create VLANs on switches
+            process1.append(proc)
+            proc.start()
+        proc.join()
 
-    # pprint('STEP7: PUSH SWITCHPORT CONFIGURATION')
-    # process2 = []
-    # intf = ['gi0/2', 'gi0/3']
-    # for int in intf:
-    #     for ip in ip_addr_list:
-    #         proc = Process(target=push_config_switchport, args=(ip,int,username,password)) #Assign VLANs on 5 switches
-    #         process2.append(proc)
-    #         proc.start()
-    #     proc.join()
+    pprint('STEP7: PUSH SWITCHPORT CONFIGURATION')
+    process2 = []
+    intf = ['gi0/2', 'gi0/3']
+    for int in intf:
+        for ip in ip_addr_list:
+            proc = Process(target=push_config_switchport, args=(ip,int,username,password)) #Assign VLANs on 5 switches
+            process2.append(proc)
+            proc.start()
+        proc.join()
 
     pprint('STEP8: VERIFY SWITCH CONFIGURATION')
     while True:
