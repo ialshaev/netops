@@ -2,6 +2,7 @@
 import requests
 import os
 import re
+import sys
 from pprint import pprint
 from netmiko import ConnectHandler
 from rich.console import Console
@@ -10,7 +11,7 @@ from multiprocessing import Process
 import getpass
 
 
-class InvlidInput(Exception):
+class InvalidInput(Exception):
     """Raised when the invalid input has been entered"""
     pass
 
@@ -69,17 +70,20 @@ def check_ip():
                 return ip
             elif ip == 'Exit':
                 pprint('Ended')
-                break
+                res = 'Ended'
+                return res
             elif ip == 'exit':
                 pprint('Ended')
-                break
+                res = 'Ended'
+                return res
             else:
                 raise InvalidIPAddress
         except InvalidIPAddress as IIPA:
             pprint(IIPA)
         except KeyboardInterrupt as KI:
             pprint (KI)
-            break
+            res = 'Interrupted'
+            return res
 
 
 def show_cmd(username, password, dev_ip):
@@ -87,26 +91,29 @@ def show_cmd(username, password, dev_ip):
         try:        
             cmd = str(input('\nEtner the command or exit/interrupt to end the check procedure. To change the device enter 0(zero): '))
             if cmd == '0':
-                return False
+                return cmd
             elif cmd == 'Exit':
                 pprint('Ended')
-                break
+                res = 'Ended'
+                return res
             elif cmd == 'exit':
                 pprint('Ended')
-                break
+                res = 'Ended'
+                return res
             else:
                 device = ConnectHandler(device_type='cisco_ios', ip=dev_ip, username=username, password=password)
                 output = device.send_command(cmd)
                 device.disconnect()
                 if 'Invalid input detected' in output:
-                    raise InvlidInput
+                    raise InvalidInput
                 else:
                     print(output)
-        except InvlidInput as II:
+        except InvalidInput as II:
             pprint(II)
         except KeyboardInterrupt as KI:
             pprint (KI)
-            break
+            res = 'Interrupted'
+            return res
 
 
 if __name__ == "__main__":
@@ -115,59 +122,67 @@ if __name__ == "__main__":
     username = input('Login: ')
     password = getpass.getpass()
 
-    # pprint('STEP1: RETREIVING DEVICE INFORMATION')
-    # url_devices = "http://192.168.246.130:8000/api/dcim/devices/"
-    # devices = rest(url_devices,token) #Retreive device information from NetBox
-    # n_devices = len(devices['results'])
-    # pprint(f'number of devices defined in NetBox: {n_devices}')
+    pprint('STEP1: RETREIVING DEVICE INFORMATION')
+    url_devices = "http://192.168.246.130:8000/api/dcim/devices/"
+    devices = rest(url_devices,token) #Retreive device information from NetBox
+    n_devices = len(devices['results'])
+    pprint(f'number of devices defined in NetBox: {n_devices}')
 
-    # pprint('STEP2: GENERATING IP ADDRESS LIST') # create the list of IP addresses
-    # ip_addr_list = []
-    # for i in range (n_devices):
-    #     ip = devices['results'][i]['primary_ip4']['address']
-    #     ip_addr_list.append(ip[:-3])
-    # pprint('The list of ip addresses: %s'%ip_addr_list) # pprint(type(ip_addr_list[0])) --> check for the list element type, must be string
+    pprint('STEP2: GENERATING IP ADDRESS LIST') # create the list of IP addresses
+    ip_addr_list = []
+    for i in range (n_devices):
+        ip = devices['results'][i]['primary_ip4']['address']
+        ip_addr_list.append(ip[:-3])
+    pprint('The list of ip addresses: %s'%ip_addr_list) # pprint(type(ip_addr_list[0])) --> check for the list element type, must be string
 
-    # pprint('STEP3: GENERATING VLAN TABLE')
-    # url_vlans = "http://192.168.246.130:8000/api/ipam/vlans/"
-    # vlans = rest(url_vlans,token) #Retreive VLAN information from NetBox and display result in table view
-    # n_vlans = len(vlans['results'])
-    # pprint(f'number of VLANs defined in NetBox: {n_vlans}')
-    # create_table(n_vlans,vlans)
+    pprint('STEP3: GENERATING VLAN TABLE')
+    url_vlans = "http://192.168.246.130:8000/api/ipam/vlans/"
+    vlans = rest(url_vlans,token) #Retreive VLAN information from NetBox and display result in table view
+    n_vlans = len(vlans['results'])
+    pprint(f'number of VLANs defined in NetBox: {n_vlans}')
+    create_table(n_vlans,vlans)
 
-    # pprint('STEP4: GENERATING VLAN LISTS')
-    # vlans_id_list = []
-    # vlans_name_list = []
-    # for vid,vname in zip(range(n_vlans),range(n_vlans)):
-    #     vlans_id_list.append(vlans['results'][vid]['vid'])
-    #     vlans_name_list.append(vlans['results'][vname]['name'])
-    # print(vlans_id_list)
-    # print(vlans_name_list)
+    pprint('STEP4: GENERATING VLAN LISTS')
+    vlans_id_list = []
+    vlans_name_list = []
+    for vid,vname in zip(range(n_vlans),range(n_vlans)):
+        vlans_id_list.append(vlans['results'][vid]['vid'])
+        vlans_name_list.append(vlans['results'][vname]['name'])
+    print(vlans_id_list)
+    print(vlans_name_list)
 
-    # pprint('STEP5: SCANNING FOR IP ADDRESS AVAILABILITY')
-    # for ip in ip_addr_list:
-    #     res = check_availability(ip) #IP address availability scan
-    #     print(res)
+    pprint('STEP5: SCANNING FOR IP ADDRESS AVAILABILITY')
+    for ip in ip_addr_list:
+        res = check_availability(ip) #IP address availability scan
+        print(res)
 
-    # pprint('STEP6: PUSH VLAN CONFIGURATION')
-    # process1 = []
-    # for v,n in zip(vlans_id_list,vlans_name_list):
-    #     for ip in ip_addr_list:
-    #         proc = Process(target=push_config_vlan, args=(ip,v,n,username,password)) #Create VLANs on switches
-    #         process1.append(proc)
-    #         proc.start()
-    #     proc.join()
+    pprint('STEP6: PUSH VLAN CONFIGURATION')
+    process1 = []
+    for v,n in zip(vlans_id_list,vlans_name_list):
+        for ip in ip_addr_list:
+            proc = Process(target=push_config_vlan, args=(ip,v,n,username,password)) #Create VLANs on switches
+            process1.append(proc)
+            proc.start()
+        proc.join()
 
-    # pprint('STEP7: PUSH SWITCHPORT CONFIGURATION')
-    # process2 = []
-    # intf = ['gi0/2', 'gi0/3']
-    # for int in intf:
-    #     for ip in ip_addr_list:
-    #         proc = Process(target=push_config_switchport, args=(ip,int,username,password)) #Assign VLANs on 5 switches
-    #         process2.append(proc)
-    #         proc.start()
-    #     proc.join()
+    pprint('STEP7: PUSH SWITCHPORT CONFIGURATION')
+    process2 = []
+    intf = ['gi0/2', 'gi0/3']
+    for int in intf:
+        for ip in ip_addr_list:
+            proc = Process(target=push_config_switchport, args=(ip,int,username,password)) #Assign VLANs on 5 switches
+            process2.append(proc)
+            proc.start()
+        proc.join()
 
     pprint('STEP8: VERIFY SWITCH CONFIGURATION')
-    dev_ip = check_ip()
-    dev_show = show_cmd(username, password, dev_ip)
+    while True:
+        dev_ip = check_ip()
+        if dev_ip == 'Ended' or dev_ip == 'Interrupted':
+            sys.exit()
+        else:
+            dev_show = show_cmd(username, password, dev_ip)
+            if dev_show == '0':
+                print('\nChanging device ip address')
+            elif dev_show == 'Ended' or dev_show == 'Interrupted':
+                sys.exit()
