@@ -56,9 +56,11 @@ def check_availability(ip):
     status = os.system('ping -c 1 -W 2 %s > /dev/null'%ip)
     if status == False:
         pingresult = ip + ' is Available'
+        print(pingresult)
+        return(ip)
     else:
         pingresult = ip + ' is Unavailable'
-    return(pingresult)
+        print(pingresult)
 
 def check_ip(ip_address_list):
     while True:
@@ -158,17 +160,23 @@ if __name__ == "__main__":
     print(vlans_name_list)
 
     pprint('STEP5: SCANNING FOR IP ADDRESS AVAILABILITY')
+    up_dev_list = []
     for ip in ip_addr_list:
-        res = check_availability(ip) #IP address availability scan
-        print(res)
+        up_dev_list.append(check_availability(ip)) #IP address availability scan      
+    print('The list of available devices:')
+    print(up_dev_list)
 
     pprint('STEP6: PUSH VLAN CONFIGURATION')
     process1 = []
     for v,n in zip(vlans_id_list,vlans_name_list):
         for ip in ip_addr_list:
-            proc = Process(target=push_config_vlan, args=(ip,v,n,username,password)) #Create VLANs on switches
-            process1.append(proc)
-            proc.start()
+            if ip in up_dev_list:
+                pprint('PUSHING CONFIG ON %s'%ip)
+                proc = Process(target=push_config_vlan, args=(ip,v,n,username,password)) #Create VLANs on switches
+                process1.append(proc)
+                proc.start()
+            else:
+                continue
         proc.join()
 
     pprint('STEP7: PUSH SWITCHPORT CONFIGURATION')
@@ -176,14 +184,18 @@ if __name__ == "__main__":
     intf = ['gi0/2', 'gi0/3']
     for int in intf:
         for ip in ip_addr_list:
-            proc = Process(target=push_config_switchport, args=(ip,int,username,password)) #Assign VLANs on 5 switches
-            process2.append(proc)
-            proc.start()
+            if ip in up_dev_list:
+                pprint('PUSHING CONFIG ON %s'%ip)
+                proc = Process(target=push_config_switchport, args=(ip,int,username,password)) #Assign VLANs on 5 switches
+                process2.append(proc)
+                proc.start()
+            else:
+                continue
         proc.join()
 
     pprint('STEP8: VERIFY SWITCH CONFIGURATION')
     while True:
-        dev_ip = check_ip(ip_addr_list)
+        dev_ip = check_ip(up_dev_list)
         if dev_ip == 'Ended' or dev_ip == 'Interrupted':
             sys.exit()
         else:
