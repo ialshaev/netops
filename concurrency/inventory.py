@@ -23,5 +23,10 @@ devices = [
         "hostname": "sto-leaf02-mdf01",
         "host": "192.168.246.245",
         "device_type": "cisco_ios_ssh"
+    },
+    {
+        "hostname": "sto-leaf03-mdf01",
+        "host": "192.168.246.246",
+        "device_type": "cisco_ios_ssh"
     }
 ]

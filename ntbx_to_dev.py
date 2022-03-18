@@ -3,13 +3,12 @@ import requests
 import os
 import re
 import sys
-from pprint import pprint
-from scrapli.driver.core import IOSXEDriver
-from netmiko import ConnectHandler
-from rich.console import Console
-from rich.table import Table
 import threading
 import getpass
+from pprint import pprint
+from scrapli.driver.core import IOSXEDriver
+from rich.console import Console
+from rich.table import Table
 
 
 class InvalidInput(Exception):
@@ -108,13 +107,14 @@ def show_cmd(username, password, ip):
                 return res
             else:
                 try:
-                    device = ConnectHandler(device_type='cisco_ios', ip=ip, username=username, password=password)
-                    output = device.send_command(cmd)
-                    device.disconnect()
-                    if 'Invalid input detected' in output:
+                    device = {'host': ip, 'auth_username': username, 'auth_password': password, 'auth_strict_key': False}
+                    with IOSXEDriver(**device) as connection:
+                        output = connection.send_command(cmd)
+                        output_result = output.result
+                    if 'Invalid input detected' in output_result:
                         raise InvalidInput
-                    else:
-                        print(output)
+                    else:   
+                        print(output_result)
                 except OSError as OSE:
                     print(OSE)
         except InvalidInput as II:
