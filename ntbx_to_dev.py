@@ -1,13 +1,14 @@
-#!/home/admililiaa/netprog/bin/python3
+#!/home/admililiaa/network_automation_scripts/bin/python
 import requests
 import os
 import re
 import sys
 from pprint import pprint
+from scrapli.driver.core import IOSXEDriver
 from netmiko import ConnectHandler
 from rich.console import Console
 from rich.table import Table
-from multiprocessing import Process
+import threading
 import getpass
 
 
@@ -25,16 +26,16 @@ class ReExecute(Exception):
 
 
 def push_config_vlan(ip,v,n,username,password):
-    device = ConnectHandler(device_type='cisco_ios', ip=ip, username=username, password=password)
     vlancli = [f'vlan {v}', f'name {n}']
-    device.send_config_set(vlancli)
-    device.disconnect()
+    device = {'host': ip, 'auth_username': username, 'auth_password': password, 'auth_strict_key': False}
+    with IOSXEDriver(**device) as connection:
+        connection.send_configs(vlancli)
 
 def push_config_switchport(ip,int,username,password):
-    device = ConnectHandler(device_type='cisco_ios', ip=ip, username=username, password=password)
     portcli = [f'interface {int}', 'description **SPB-INFRASTRUCTURE cfg by netmiko**', 'switchport mode access', 'switchport access vlan 104']
-    device.send_config_set(portcli)
-    device.disconnect()
+    device = {'host': ip, 'auth_username': username, 'auth_password': password, 'auth_strict_key': False}
+    with IOSXEDriver(**device) as connection:
+        connection.send_configs(portcli)
 
 def rest(url,token):
     headers = {'Content-Type': 'application/json','Accept': 'application/json','Authorization': token}
@@ -167,31 +168,31 @@ if __name__ == "__main__":
     print(up_dev_list)
 
     pprint('STEP6: PUSH VLAN CONFIGURATION')
-    process1 = []
+    first_thread = []
     for v,n in zip(vlans_id_list,vlans_name_list):
         for ip in ip_addr_list:
             if ip in up_dev_list:
                 pprint('PUSHING CONFIG ON %s'%ip)
-                proc = Process(target=push_config_vlan, args=(ip,v,n,username,password)) #Create VLANs on switches
-                process1.append(proc)
-                proc.start()
+                thread = threading.Thread(target=push_config_vlan, args=(ip,v,n,username,password)) #Create VLANs on switches
+                first_thread.append(thread)
+                thread.start()
             else:
                 continue
-        proc.join()
+        thread.join()
 
     pprint('STEP7: PUSH SWITCHPORT CONFIGURATION')
-    process2 = []
+    second_thread = []
     intf = ['gi0/2', 'gi0/3']
     for int in intf:
         for ip in ip_addr_list:
             if ip in up_dev_list:
                 pprint('PUSHING CONFIG ON %s'%ip)
-                proc = Process(target=push_config_switchport, args=(ip,int,username,password)) #Assign VLANs on 5 switches
-                process2.append(proc)
-                proc.start()
+                thread = threading.Thread(target=push_config_switchport, args=(ip,int,username,password)) #Assign VLANs on 5 switches
+                second_thread.append(thread)
+                thread.start()
             else:
                 continue
-        proc.join()
+        thread.join()
 
     pprint('STEP8: VERIFY SWITCH CONFIGURATION')
     while True:
