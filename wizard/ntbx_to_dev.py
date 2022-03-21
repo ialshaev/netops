@@ -10,6 +10,9 @@ from scrapli.driver.core import IOSXEDriver
 from rich.console import Console
 from rich.table import Table
 
+class NetworkNode():
+    def __init__(self, ip, username, password):
+        self.device = {'host': ip, 'auth_username': username, 'auth_password': password, 'auth_strict_key': False}
 
 class InvalidInput(Exception):
     """Raised when the invalid input has been entered"""
