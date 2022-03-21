@@ -1,0 +1,1 @@
+This netmap script is designed to gather all information about network connectivity for the specified site/office/DC and visualize it.

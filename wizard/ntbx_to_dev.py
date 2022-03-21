@@ -10,9 +10,19 @@ from scrapli.driver.core import IOSXEDriver
 from rich.console import Console
 from rich.table import Table
 
-class NetworkNode():
+class NetworkNodeConfig():
     def __init__(self, ip, username, password):
         self.device = {'host': ip, 'auth_username': username, 'auth_password': password, 'auth_strict_key': False}
+    def push_vlan_conf(self, v, n):
+        self.vlancli =  [f'vlan {v}', f'name {n}']
+        with IOSXEDriver(**self.device) as connection:
+            connection.send_configs(self.vlancli)
+    def push_swint_conf(self):
+        int_list = ['gi0/2', 'gi0/3']
+        for int in int_list:
+            self.swintcli = [f'interface {int}', 'description cnfgred with scrapli', 'switchport mode access', 'switchport access vlan 104']
+            with IOSXEDriver(**self.device) as connection:
+                connection.send_configs(self.swintcli)
 
 class InvalidInput(Exception):
     """Raised when the invalid input has been entered"""
@@ -26,18 +36,6 @@ class ReExecute(Exception):
     """Raised when the function needs to be executed once again"""
     pass
 
-
-def push_config_vlan(ip,v,n,username,password):
-    vlancli = [f'vlan {v}', f'name {n}']
-    device = {'host': ip, 'auth_username': username, 'auth_password': password, 'auth_strict_key': False}
-    with IOSXEDriver(**device) as connection:
-        connection.send_configs(vlancli)
-
-def push_config_switchport(ip,int,username,password):
-    portcli = [f'interface {int}', 'description **SPB-INFRASTRUCTURE cfg by netmiko**', 'switchport mode access', 'switchport access vlan 104']
-    device = {'host': ip, 'auth_username': username, 'auth_password': password, 'auth_strict_key': False}
-    with IOSXEDriver(**device) as connection:
-        connection.send_configs(portcli)
 
 def rest(url,token):
     headers = {'Content-Type': 'application/json','Accept': 'application/json','Authorization': token}
@@ -176,25 +174,27 @@ if __name__ == "__main__":
         for ip in ip_addr_list:
             if ip in up_dev_list:
                 pprint('PUSHING CONFIG ON %s'%ip)
-                thread = threading.Thread(target=push_config_vlan, args=(ip,v,n,username,password)) #Create VLANs on switches
+                net_node = NetworkNodeConfig(ip, username, password)
+                thread = threading.Thread(target=net_node.push_vlan_conf, args=(v,n)) #Create VLANs on switches
                 first_thread.append(thread)
                 thread.start()
             else:
                 continue
-        thread.join()
+        for thread in first_thread:
+            thread.join()
 
     pprint('STEP7: PUSH SWITCHPORT CONFIGURATION')
     second_thread = []
-    intf = ['gi0/2', 'gi0/3']
-    for int in intf:
-        for ip in ip_addr_list:
-            if ip in up_dev_list:
-                pprint('PUSHING CONFIG ON %s'%ip)
-                thread = threading.Thread(target=push_config_switchport, args=(ip,int,username,password)) #Assign VLANs on 5 switches
-                second_thread.append(thread)
-                thread.start()
-            else:
-                continue
+    for ip in ip_addr_list:
+        if ip in up_dev_list:
+            pprint('PUSHING CONFIG ON %s'%ip)
+            net_node = NetworkNodeConfig(ip, username, password)
+            thread = threading.Thread(target=net_node.push_swint_conf, args=()) #Assign VLANs on switches with description
+            second_thread.append(thread)
+            thread.start()
+        else:
+            continue
+    for thread in second_thread:
         thread.join()
 
     pprint('STEP8: VERIFY SWITCH CONFIGURATION')
