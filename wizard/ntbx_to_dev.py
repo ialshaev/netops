@@ -54,7 +54,7 @@ def create_table(n_vlans,vlans):
     console.print(table_vlans)
 
 def check_availability(ip):
-    status = os.system('ping -c 1 -W 2 %s > /dev/null'%ip)
+    status = os.system(f'ping -c 1 -W 2 {ip} > /dev/null')
     if status == False:
         pingresult = ip + ' is Available'
         print(pingresult)
@@ -164,47 +164,51 @@ if __name__ == "__main__":
     pprint('STEP5: SCANNING FOR IP ADDRESS AVAILABILITY')
     up_dev_list = []
     for ip in ip_addr_list:
-        up_dev_list.append(check_availability(ip)) #IP address availability scan      
+        check_ip_result = check_availability(ip)
+        if check_ip_result != None:
+            up_dev_list.append(check_ip_result) #IP address availability scan
+        # else:
+        #     print('Skipping "None"')  
     print('The list of available devices:')
     print(up_dev_list)
 
-    pprint('STEP6: PUSH VLAN CONFIGURATION')
-    first_thread = []
-    for v,n in zip(vlans_id_list,vlans_name_list):
-        for ip in ip_addr_list:
-            if ip in up_dev_list:
-                pprint('PUSHING CONFIG ON %s'%ip)
-                net_node = NetworkNodeConfig(ip, username, password)
-                thread = threading.Thread(target=net_node.push_vlan_conf, args=(v,n)) #Create VLANs on switches
-                first_thread.append(thread)
-                thread.start()
-            else:
-                continue
-        for thread in first_thread:
-            thread.join()
+    # pprint('STEP6: PUSH VLAN CONFIGURATION')
+    # first_thread = []
+    # for v,n in zip(vlans_id_list,vlans_name_list):
+    #     for ip in ip_addr_list:
+    #         if ip in up_dev_list:
+    #             pprint('PUSHING CONFIG ON %s'%ip)
+    #             net_node = NetworkNodeConfig(ip, username, password)
+    #             thread = threading.Thread(target=net_node.push_vlan_conf, args=(v,n)) #Create VLANs on switches
+    #             first_thread.append(thread)
+    #             thread.start()
+    #         else:
+    #             continue
+    #     for thread in first_thread:
+    #         thread.join()
 
-    pprint('STEP7: PUSH SWITCHPORT CONFIGURATION')
-    second_thread = []
-    for ip in ip_addr_list:
-        if ip in up_dev_list:
-            pprint('PUSHING CONFIG ON %s'%ip)
-            net_node = NetworkNodeConfig(ip, username, password)
-            thread = threading.Thread(target=net_node.push_swint_conf, args=()) #Assign VLANs on switches with description
-            second_thread.append(thread)
-            thread.start()
-        else:
-            continue
-    for thread in second_thread:
-        thread.join()
+    # pprint('STEP7: PUSH SWITCHPORT CONFIGURATION')
+    # second_thread = []
+    # for ip in ip_addr_list:
+    #     if ip in up_dev_list:
+    #         pprint('PUSHING CONFIG ON %s'%ip)
+    #         net_node = NetworkNodeConfig(ip, username, password)
+    #         thread = threading.Thread(target=net_node.push_swint_conf, args=()) #Assign VLANs on switches with description
+    #         second_thread.append(thread)
+    #         thread.start()
+    #     else:
+    #         continue
+    # for thread in second_thread:
+    #     thread.join()
 
-    pprint('STEP8: VERIFY SWITCH CONFIGURATION')
-    while True:
-        dev_ip = check_ip(up_dev_list)
-        if dev_ip == 'Ended' or dev_ip == 'Interrupted':
-            sys.exit()
-        else:
-            dev_show = show_cmd(username, password, dev_ip)
-            if dev_show == '0':
-                print('\nChanging device ip address')
-            elif dev_show == 'Ended' or dev_show == 'Interrupted':
-                sys.exit()
+    # pprint('STEP8: VERIFY SWITCH CONFIGURATION')
+    # while True:
+    #     dev_ip = check_ip(up_dev_list)
+    #     if dev_ip == 'Ended' or dev_ip == 'Interrupted':
+    #         sys.exit()
+    #     else:
+    #         dev_show = show_cmd(username, password, dev_ip)
+    #         if dev_show == '0':
+    #             print('\nChanging device ip address')
+    #         elif dev_show == 'Ended' or dev_show == 'Interrupted':
+    #             sys.exit()
