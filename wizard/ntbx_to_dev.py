@@ -11,18 +11,16 @@ from rich.console import Console
 from rich.table import Table
 
 class NetworkNodeConfig():
-    def __init__(self, ip, username, password):
-        self.device = {'host': ip, 'auth_username': username, 'auth_password': password, 'auth_strict_key': False}
-    def push_vlan_conf(self, v, n):
-        self.vlancli =  [f'vlan {v}', f'name {n}']
+    def __init__(self, ip, uname, pwd):
+        self.device = {'host': ip, 'auth_username': uname, 'auth_password': pwd, 'auth_strict_key': False}
+    def push_vlan_conf(self, v_id, v_name):
+        self.vlancli =  [f'vlan {v_id}', f'name {v_name}']
         with IOSXEDriver(**self.device) as connection:
             connection.send_configs(self.vlancli)
-    def push_swint_conf(self):
-        int_list = ['gi0/2', 'gi0/3']
-        for int in int_list:
-            self.swintcli = [f'interface {int}', 'description cnfgred with scrapli', 'switchport mode access', 'switchport access vlan 104']
-            with IOSXEDriver(**self.device) as connection:
-                connection.send_configs(self.swintcli)
+    def push_swint_conf(self, i_name):
+        self.swintcli = [f'interface {i_name}', 'description cnfgred with scrapli', 'switchport mode access', 'switchport access vlan 111']
+        with IOSXEDriver(**self.device) as connection:
+            connection.send_configs(self.swintcli)
 
 class InvalidInput(Exception):
     """Raised when the invalid input has been entered"""
@@ -143,7 +141,7 @@ if __name__ == "__main__":
     for i in range (n_devices):
         ip = devices['results'][i]['primary_ip4']['address']
         ip_addr_list.append(ip[:-3])
-    pprint('The list of ip addresses: %s'%ip_addr_list) # pprint(type(ip_addr_list[0])) --> check for the list element type, must be string
+    pprint(f'The list of ip addresses: {ip_addr_list}') # pprint(type(ip_addr_list[0])) --> check for the list element type, must be string
 
     pprint('STEP3: GENERATING VLAN TABLE')
     url_vlans = "http://192.168.246.130:8000/api/ipam/vlans/"
@@ -155,7 +153,7 @@ if __name__ == "__main__":
     pprint('STEP4: GENERATING VLAN LISTS')
     vlans_id_list = []
     vlans_name_list = []
-    for vid,vname in zip(range(n_vlans),range(n_vlans)):
+    for vid,vname in zip(range(n_vlans),range(n_vlans)): #Generating 2 lists with VLAN IDs and names
         vlans_id_list.append(vlans['results'][vid]['vid'])
         vlans_name_list.append(vlans['results'][vname]['name'])
     print(vlans_id_list)
@@ -166,49 +164,43 @@ if __name__ == "__main__":
     for ip in ip_addr_list:
         check_ip_result = check_availability(ip)
         if check_ip_result != None:
-            up_dev_list.append(check_ip_result) #IP address availability scan
-        # else:
-        #     print('Skipping "None"')  
+            up_dev_list.append(check_ip_result) #IP address availability scan 
     print('The list of available devices:')
     print(up_dev_list)
 
-    # pprint('STEP6: PUSH VLAN CONFIGURATION')
-    # first_thread = []
-    # for v,n in zip(vlans_id_list,vlans_name_list):
-    #     for ip in ip_addr_list:
-    #         if ip in up_dev_list:
-    #             pprint('PUSHING CONFIG ON %s'%ip)
-    #             net_node = NetworkNodeConfig(ip, username, password)
-    #             thread = threading.Thread(target=net_node.push_vlan_conf, args=(v,n)) #Create VLANs on switches
-    #             first_thread.append(thread)
-    #             thread.start()
-    #         else:
-    #             continue
-    #     for thread in first_thread:
-    #         thread.join()
+    pprint('STEP6: PUSH VLAN CONFIGURATION')
+    first_thread = []
+    for v_id,v_name in zip(vlans_id_list,vlans_name_list):
+        for ip in up_dev_list:
+            pprint(f'PUSHING CONFIG ON {ip}')
+            net_node = NetworkNodeConfig(ip, username, password)
+            thread = threading.Thread(target=net_node.push_vlan_conf, args=(v_id,v_name)) #Create VLANs on switches
+            first_thread.append(thread)
+            thread.start()
+        for thread in first_thread:
+            thread.join()
 
-    # pprint('STEP7: PUSH SWITCHPORT CONFIGURATION')
-    # second_thread = []
-    # for ip in ip_addr_list:
-    #     if ip in up_dev_list:
-    #         pprint('PUSHING CONFIG ON %s'%ip)
-    #         net_node = NetworkNodeConfig(ip, username, password)
-    #         thread = threading.Thread(target=net_node.push_swint_conf, args=()) #Assign VLANs on switches with description
-    #         second_thread.append(thread)
-    #         thread.start()
-    #     else:
-    #         continue
-    # for thread in second_thread:
-    #     thread.join()
+    pprint('STEP7: PUSH SWITCHPORT CONFIGURATION')
+    second_thread = []
+    int_list = ['gi0/2', 'gi0/3']
+    for int in int_list:
+        for ip in up_dev_list:
+            pprint(f'PUSHING CONFIG ON {ip}')
+            net_node = NetworkNodeConfig(ip, username, password)
+            thread = threading.Thread(target=net_node.push_swint_conf, args=(int,)) #Assign VLANs on switches with description
+            second_thread.append(thread)
+            thread.start()
+        for thread in second_thread:
+            thread.join()
 
-    # pprint('STEP8: VERIFY SWITCH CONFIGURATION')
-    # while True:
-    #     dev_ip = check_ip(up_dev_list)
-    #     if dev_ip == 'Ended' or dev_ip == 'Interrupted':
-    #         sys.exit()
-    #     else:
-    #         dev_show = show_cmd(username, password, dev_ip)
-    #         if dev_show == '0':
-    #             print('\nChanging device ip address')
-    #         elif dev_show == 'Ended' or dev_show == 'Interrupted':
-    #             sys.exit()
+    pprint('STEP8: VERIFY SWITCH CONFIGURATION')
+    while True:
+        dev_ip = check_ip(up_dev_list)
+        if dev_ip == 'Ended' or dev_ip == 'Interrupted':
+            sys.exit()
+        else:
+            dev_show = show_cmd(username, password, dev_ip)
+            if dev_show == '0':
+                print('\nChanging device ip address')
+            elif dev_show == 'Ended' or dev_show == 'Interrupted':
+                sys.exit()
