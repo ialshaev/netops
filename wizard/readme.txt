@@ -114,3 +114,4 @@ Enter the command or exit/interrupt to end the check procedure. To change the de
 !!!
 For improvements:
 - disaply each thread output in a more short manner
+- make push functions able to differentiate between sites and assign vlans according to site belonging

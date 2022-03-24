@@ -52,7 +52,7 @@ def create_table(n_vlans,vlans):
     console.print(table_vlans)
 
 def check_availability(ip):
-    status = os.system(f'ping -c 1 -W 2 {ip} > /dev/null')
+    status = os.system(f'ping -c 2 -W 2 {ip} > /dev/null')
     if status == False:
         pingresult = ip + ' is Available'
         print(pingresult)

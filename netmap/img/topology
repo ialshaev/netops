@@ -2,9 +2,10 @@ graph {
 	graph [bgcolor="#3F3F3F" fontcolor=white fontsize=16 label="Network Map" rankdir=BT]
 	node [color="#006699" fillcolor="#006699" fontcolor=white fontname=Helvetica margin=0.4 shape=box style=filled]
 	edge [arrowhead=open color=green fontcolor=white fontname=Courier fontsize=14 style=dashed]
-	R4
-	R6
-	R5
-	R4 -- R5 [label="            " headlabel="Eth0/1" taillabel="Eth0/1"]
-	R4 -- R6 [label="            " headlabel="Eth0/0" taillabel="Eth0/2"]
+	"spb-leaf02-mdf01"
+	"spb-leaf03-mdf01"
+	"spb-leaf01-mdf01"
+	"spb-leaf01-mdf01" -- "spb-leaf02-mdf01" [label="            " headlabel="gi1/1" taillabel="gi1/1"]
+	"spb-leaf01-mdf01" -- "spb-leaf03-mdf01" [label="            " headlabel="gi1/3" taillabel="gi1/3"]
+	"spb-leaf02-mdf01" -- "spb-leaf03-mdf01" [label="            " headlabel="gi1/2" taillabel="gi1/2"]
 }

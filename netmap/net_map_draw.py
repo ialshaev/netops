@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
-# Based on http://matthiaseisen.com/articles/graphviz/
-
+#!/home/admililiaa/network_automation_scripts/bin/python
 import sys
+import ast
 
 try:
     import graphviz as gv
@@ -44,21 +43,8 @@ def apply_styles(graph, styles):
     graph.edge_attr.update(("edges" in styles and styles["edges"]) or {})
     return graph
 
-
 def draw_topology(topology_dict, out_filename="img/topology", style_dict=styles):
-    """
-    topology_dict - словарь с описанием топологии
-    Пример словаря topology_dict:
-        {('R4', 'Eth0/1'): ('R5', 'Eth0/1'),
-         ('R4', 'Eth0/2'): ('R6', 'Eth0/0')}
-    соответствует топологии:
-    [ R5 ]-Eth0/1 --- Eth0/1-[ R4 ]-Eth0/2---Eth0/0-[ R6 ]
-    Функция генерирует топологию, в формате svg.
-    И записывает файл topology.svg в каталог img.
-    """
-    nodes = set(
-        [item[0] for item in list(topology_dict.keys()) + list(topology_dict.values())]
-    )
+    nodes = set([item[0] for item in list(topology_dict.keys()) + list(topology_dict.values())])
 
     graph = gv.Graph(format="svg")
 
@@ -75,5 +61,8 @@ def draw_topology(topology_dict, out_filename="img/topology", style_dict=styles)
     print("Topology saved in", filename)
 
 if __name__ == "__main__":
-    topo1 = {('R4', 'Eth0/1'): ('R5', 'Eth0/1'),('R4', 'Eth0/2'): ('R6', 'Eth0/0')}
-    draw_topology(topo1)
+    with open("topology_netbox.py", "r") as t:
+        topo = ast.literal_eval(t.read())
+        for item in topo.items():
+            print(item[0][0] + ' on interface ' + item[0][1] + ' --connected with-- ' + item[1][0] + ' on interface ' + item[1][1])
+        draw_topology(topo)

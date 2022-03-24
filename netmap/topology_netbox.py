@@ -1,0 +1,1 @@
+{('spb-leaf01-mdf01', 'gi1/1'): ('spb-leaf02-mdf01', 'gi1/1'),('spb-leaf01-mdf01', 'gi1/3'): ('spb-leaf03-mdf01', 'gi1/3'),('spb-leaf02-mdf01', 'gi1/2'): ('spb-leaf03-mdf01', 'gi1/2')}
