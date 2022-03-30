@@ -1,0 +1,16 @@
+Value Filldown loc_host (\d+(\.\d+){3})
+Value Required rem_host (\S+)
+Value Required ip_address (.*)
+Value platform (.*)
+Value capabilities (.*)
+Value loc_interface (.*)
+Value rem_interface (.*)
+Value version (\S+.\S+.\S+)
+
+Start
+  ^${loc_host}
+  ^Device ID: ${rem_host}
+  ^.*IP address: ${ip_address}
+  ^.*Platform: ${platform} ,  Capabilities: ${capabilities}
+  ^Interface: ${loc_interface},  Port ID \(outgoing port\): ${rem_interface}
+  ^Cisco IOS Software, ${version}, -> Record

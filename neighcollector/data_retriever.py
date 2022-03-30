@@ -1,18 +1,23 @@
+#!/home/admililiaa/network_automation_scripts/bin/python
 from scrapli.driver.core import IOSXEDriver
 from pprint import pprint
+from tabulate import tabulate
 import threading
 import getpass
 import requests
 import os
+import textfsm
 
 class NetworkNodeConfig():
     def __init__(self, ip, uname, pwd):
         self.device = {'host': ip, 'auth_username': uname, 'auth_password': pwd, 'auth_strict_key': False}
     def show_cdp_neigh(self):
-        self.send_show = 'show cdp nei'
+        self.send_show_cdp = 'show cdp nei detail'
         with IOSXEDriver(**self.device) as connection:
-            output = connection.send_command(self.send_show)
-            print(output.result)
+            output = connection.send_command(self.send_show_cdp)
+            result = self.device["host"] +'\n' + '\n' + output.result + '\n\n'
+        with open('output.txt', 'a') as output_file:
+            output_file.write(result)
 
 def rest(url,token):
     headers = {'Content-Type': 'application/json','Accept': 'application/json','Authorization': token}
@@ -46,7 +51,7 @@ if __name__ == "__main__":
     for i in range (n_devices):
         ip = devices['results'][i]['primary_ip4']['address']
         ip_addr_list.append(ip[:-3])
-    pprint(f'The list of ip addresses: {ip_addr_list}') # pprint(type(ip_addr_list[0])) --> check for the list element type, must be string
+    pprint(ip_addr_list) # pprint(type(ip_addr_list[0])) --> check for the list element type, must be string
 
     pprint('STEP3: SCANNING FOR IP ADDRESS AVAILABILITY')
     up_dev_list = []
@@ -58,6 +63,9 @@ if __name__ == "__main__":
     print(up_dev_list)
 
     pprint('STEP4: RETRIEVE CDP INFORMATION')
+    with open('output.txt', 'a') as o:
+        o.truncate(0)
+
     main_thread = []
     for ip in up_dev_list:
         pprint(f'RETRIEVING NEIGHBOURS FROM {ip}')
@@ -67,3 +75,10 @@ if __name__ == "__main__":
         thread.start()
     for thread in main_thread:
         thread.join()
+
+    with open('template_cdp.textfsm') as template, open('output.txt') as output:
+        t = textfsm.TextFSM(template)
+        header = t.header
+        parsed_output = t.ParseText(output.read())
+        # print(parsed_output)
+        print(tabulate(parsed_output, headers=header))
