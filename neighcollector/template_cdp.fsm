@@ -1,4 +1,5 @@
-Value Filldown loc_host (\d+(\.\d+){3})
+# Value Filldown loc_host (\d+(\.\d+){3})
+Value Filldown loc_host (.*)
 Value Required rem_host (\S+)
 Value Required ip_address (.*)
 Value platform (.*)
@@ -8,8 +9,8 @@ Value rem_interface (.*)
 Value version (\S+.\S+.\S+)
 
 Start
-  ^${loc_host}
-  ^Device ID: ${rem_host}
+  ^hostname ${loc_host}show 
+  ^Device ID: ${rem_host}\.
   ^.*IP address: ${ip_address}
   ^.*Platform: ${platform} ,  Capabilities: ${capabilities}
   ^Interface: ${loc_interface},  Port ID \(outgoing port\): ${rem_interface}
