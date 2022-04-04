@@ -1,4 +1,3 @@
-#!/home/admililiaa/network_automation_scripts/bin/python
 import requests
 import os
 import re

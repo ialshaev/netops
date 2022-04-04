@@ -1,4 +1,3 @@
-#!/home/admililiaa/network_automation_scripts/bin/python
 import sys
 import ast
 

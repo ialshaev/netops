@@ -1,4 +1,3 @@
-#!/home/admililiaa/network_automation_scripts/bin/python
 from scrapli.driver.core import IOSXEDriver
 from pprint import pprint
 from tabulate import tabulate
