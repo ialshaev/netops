@@ -11,7 +11,7 @@ from rich.table import Table
 
 class NetworkNodeConfig():
     def __init__(self, ip, uname, pwd):
-        self.device = {'host': ip, 'auth_username': uname, 'auth_password': pwd, 'auth_strict_key': False}
+        self.device = {'host': ip, 'auth_username': uname, 'auth_password': pwd, 'auth_strict_key': False, "ssh_config_file": True}
     def push_vlan_conf(self, v_id, v_name):
         self.vlancli =  [f'vlan {v_id}', f'name {v_name}']
         with IOSXEDriver(**self.device) as connection:
