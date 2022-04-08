@@ -1,6 +1,7 @@
 import requests
 import sys
 import base64
+import getpass
 from rich.console import Console
 from rich.table import Table
 
@@ -28,7 +29,7 @@ def parse_device_location(string):
 if __name__ == "__main__":
 
     login = str(input('ers-login: '))
-    password = str(input('ers-password: '))
+    password = getpass.getpass('ers-password: ')
     credentials = login + ':' + password
     credentials_bytes = credentials.encode('ascii')
 
