@@ -1,25 +1,16 @@
+import asyncio
 import requests
 import os
 import re
 import sys
-import threading
 import getpass
+import asyncio
+import logging
 from pprint import pprint
 from scrapli.driver.core import IOSXEDriver
+from scrapli.driver.core import AsyncIOSXEDriver
 from rich.console import Console
 from rich.table import Table
-
-class NetworkNodeConfig():
-    def __init__(self, ip, uname, pwd):
-        self.device = {'host': ip, 'auth_username': uname, 'auth_password': pwd, 'auth_strict_key': False, "ssh_config_file": True}
-    def push_vlan_conf(self, v_id, v_name):
-        self.vlancli =  [f'vlan {v_id}', f'name {v_name}']
-        with IOSXEDriver(**self.device) as connection:
-            connection.send_configs(self.vlancli)
-    def push_swint_conf(self, i_name):
-        self.swintcli = [f'interface {i_name}', 'description cnfgred with scrapli', 'switchport mode access', 'switchport access vlan 111']
-        with IOSXEDriver(**self.device) as connection:
-            connection.send_configs(self.swintcli)
 
 class InvalidInput(Exception):
     """Raised when the invalid input has been entered"""
@@ -33,6 +24,78 @@ class ReExecute(Exception):
     """Raised when the function needs to be executed once again"""
     pass
 
+async def push_vlan_conf(vid,vname,ip,login,pwd):
+    vlancli = [
+        f'vlan {vid}' , 
+        f'name {vname}'
+        ]
+    async with AsyncIOSXEDriver(
+        host = ip, 
+        auth_username = login, 
+        auth_password = pwd, 
+        auth_strict_key = False, 
+        ssh_config_file = True, 
+        transport = 'asyncssh'
+    ) as vlan_conf_conn:
+        await vlan_conf_conn.send_configs(vlancli)
+
+
+async def push_swint_conf(ifname,ip,login,pwd):
+    swintcli = [
+        f'interface {ifname}', 
+        'description cnfgred with scrapli', 
+        'switchport mode access', 
+        'switchport access vlan 111'
+        ]
+    async with AsyncIOSXEDriver(
+        host = ip, 
+        auth_username = login, 
+        auth_password = pwd, 
+        auth_strict_key = False, 
+        ssh_config_file = True, 
+        transport = 'asyncssh'
+    ) as swint_conf_conn:
+        await swint_conf_conn.send_configs(swintcli)
+    
+def show_cmd(username, password, ip):
+    while True:
+        try:        
+            cmd = str(input('\nEnter the command or exit/interrupt to end the check procedure. To change the device enter 0(zero): '))
+            if cmd == '0':
+                return cmd
+            elif cmd == 'show memory':
+                continue
+            elif cmd == 'Exit':
+                pprint('Ended')
+                res = 'Ended'
+                return res
+            elif cmd == 'exit':
+                pprint('Ended')
+                res = 'Ended'
+                return res
+            else:
+                try:
+                    with IOSXEDriver(
+                        host = ip,
+                        auth_username = username,
+                        auth_password = password,
+                        auth_strict_key = False,
+                        ssh_config_file = True,
+                        transport = 'paramiko',
+                    ) as show_config_conn:
+                        output = show_config_conn.send_command(cmd).result
+                    if 'Invalid input detected' in output:
+                        raise InvalidInput
+                    else:   
+                        print(output)
+                except OSError as OSE:
+                    print(OSE)
+        except InvalidInput as II:
+            pprint(II)
+        except KeyboardInterrupt as KI:
+            pprint (KI)
+            res = 'Interrupted'
+            return res
 
 def rest(url,token):
     headers = {'Content-Type': 'application/json','Accept': 'application/json','Authorization': token}
@@ -49,16 +112,6 @@ def create_table(n_vlans,vlans):
         table_vlans.add_row(str(vlans['results'][i]['vid']), vlans['results'][i]['name'], vlans['results'][i]['description'], vlans['results'][i]['site']['name'])
     console = Console()
     console.print(table_vlans)
-
-def check_availability(ip):
-    status = os.system(f'ping -c 2 -W 2 {ip} > /dev/null')
-    if status == False:
-        pingresult = ip + ' is Available'
-        print(pingresult)
-        return(ip)
-    else:
-        pingresult = ip + ' is Unavailable'
-        print(pingresult)
 
 def check_ip(ip_address_list):
     while True:
@@ -88,46 +141,17 @@ def check_ip(ip_address_list):
             res = 'Interrupted'
             return res
 
+def check_availability(ip):
+    status = os.system(f'ping -c 2 -W 2 {ip} > /dev/null')
+    if status == False:
+        pingresult = ip + ' is Available'
+        print(pingresult)
+        return(ip)
+    else:
+        pingresult = ip + ' is Unavailable'
+        print(pingresult)
 
-def show_cmd(username, password, ip):
-    while True:
-        try:        
-            cmd = str(input('\nEnter the command or exit/interrupt to end the check procedure. To change the device enter 0(zero): '))
-            if cmd == '0':
-                return cmd
-            elif cmd == 'Exit':
-                pprint('Ended')
-                res = 'Ended'
-                return res
-            elif cmd == 'exit':
-                pprint('Ended')
-                res = 'Ended'
-                return res
-            else:
-                try:
-                    device = {'host': ip, 'auth_username': username, 'auth_password': password, 'auth_strict_key': False}
-                    with IOSXEDriver(**device) as connection:
-                        output = connection.send_command(cmd)
-                        output_result = output.result
-                    if 'Invalid input detected' in output_result:
-                        raise InvalidInput
-                    else:   
-                        print(output_result)
-                except OSError as OSE:
-                    print(OSE)
-        except InvalidInput as II:
-            pprint(II)
-        except KeyboardInterrupt as KI:
-            pprint (KI)
-            res = 'Interrupted'
-            return res
-
-
-if __name__ == "__main__":
-    token = 'Token 0123456789abcdef0123456789abcdef01234567'
-    pprint('PROVIDE ADMIN CREDENTIALS') #Define admin credentials
-    username = input('Login: ')
-    password = getpass.getpass()
+async def main(login,pwd,token):
 
     pprint('STEP1: RETREIVING DEVICE INFORMATION')
     url_devices = "http://192.168.246.130:8000/api/dcim/devices/"
@@ -168,29 +192,17 @@ if __name__ == "__main__":
     print(up_dev_list)
 
     pprint('STEP6: PUSH VLAN CONFIGURATION')
-    first_thread = []
-    for v_id,v_name in zip(vlans_id_list,vlans_name_list):
-        for ip in up_dev_list:
-            pprint(f'PUSHING CONFIG ON {ip}')
-            net_node = NetworkNodeConfig(ip, username, password)
-            thread = threading.Thread(target=net_node.push_vlan_conf, args=(v_id,v_name)) #Create VLANs on switches
-            first_thread.append(thread)
-            thread.start()
-        for thread in first_thread:
-            thread.join()
+    for vid,vname in zip(vlans_id_list,vlans_name_list):
+        pprint(f'PUSHING {vname} ON SWITCHES')
+        coroutines = [push_vlan_conf(vid,vname,ip,login,pwd) for ip in up_dev_list]
+        await asyncio.gather(*coroutines)
 
     pprint('STEP7: PUSH SWITCHPORT CONFIGURATION')
-    second_thread = []
-    int_list = ['gi0/2', 'gi0/3']
-    for int in int_list:
-        for ip in up_dev_list:
-            pprint(f'PUSHING CONFIG ON {ip}')
-            net_node = NetworkNodeConfig(ip, username, password)
-            thread = threading.Thread(target=net_node.push_swint_conf, args=(int,)) #Assign VLANs on switches with description
-            second_thread.append(thread)
-            thread.start()
-        for thread in second_thread:
-            thread.join()
+    ifname_list = ['gi1/1', 'gi1/2', 'gi1/3']
+    for ifname in ifname_list:
+        pprint(f'PUSHING CONFIG ON SWITCHPORT - {ifname}')
+        coroutines = [push_swint_conf(ifname,ip,login,pwd) for ip in up_dev_list]
+        await asyncio.gather(*coroutines)
 
     pprint('STEP8: VERIFY SWITCH CONFIGURATION')
     while True:
@@ -203,3 +215,14 @@ if __name__ == "__main__":
                 print('\nChanging device ip address')
             elif dev_show == 'Ended' or dev_show == 'Interrupted':
                 sys.exit()
+
+if __name__ == "__main__":
+
+    logging.basicConfig(filename="ntbx_scrapli.log", level=logging.DEBUG)
+    logger = logging.getLogger("scrapli")
+    token = 'Token 0123456789abcdef0123456789abcdef01234567'
+
+    pprint('PROVIDE ADMIN CREDENTIALS') #Define admin credentials
+    username = input('Login: ')
+    password = getpass.getpass('Password: ')
+    asyncio.run(main(username,password,token))
