@@ -9,7 +9,7 @@ import textfsm
 
 class NetworkNodeConfig():
     def __init__(self, ip, uname, pwd):
-        self.device = {'host': ip, 'auth_username': uname, 'auth_password': pwd, 'auth_strict_key': False}
+        self.device = {'host': ip, 'auth_username': uname, 'auth_password': pwd, 'auth_strict_key': False, 'ssh_config_file': True}
     def show_cdp_neigh(self):
         self.send_show_cdp = 'show cdp nei detail'
         self.send_show_hostname = 'show run | incl hostname'
