@@ -24,6 +24,75 @@ class ReExecute(Exception):
     """Raised when the function needs to be executed once again"""
     pass
 
+class NetBox():
+    def __init__(self,token,url):
+        self.url = url
+        self.headers = {'Content-Type': 'application/json','Accept': 'application/json','Authorization': token}
+    def getDevices(self):
+        self.Devices = requests.request("GET", f"http://{self.url}:8000/api/dcim/devices/", headers=self.headers).json()
+        self.NDevices = self.Devices['count']
+        DeviceListIPv4 = []
+        for device in range (self.NDevices):
+            ipv4 = self.Devices['results'][device]['primary_ip4']['address']
+            DeviceListIPv4.append(ipv4[:-3])
+        return self.NDevices, self.Devices, DeviceListIPv4
+    def getVLANS(self):
+        self.Vlans = requests.request("GET", f"http://{self.url}:8000/api/ipam/vlans/", headers=self.headers).json()
+        self.NVlans = len(self.Vlans['results'])
+        VIDList = []
+        VNameList = []
+        for vid,vname in zip(range(self.NVlans),range(self.NVlans)): #Generating 2 lists with VLAN IDs and names
+            VIDList.append(self.Vlans['results'][vid]['vid'])
+            VNameList.append(self.Vlans['results'][vname]['name'])
+        return self.NVlans, self.Vlans, VIDList, VNameList
+    def tableDevices(self):
+        table = Table(title="Devices")
+        table_properties = { 
+            'DID': ['center', 'cyan', True],
+            'NAME': ['left', 'green', False], 
+            'TYPE': ['left', 'green', False], 
+            'ROLE': ['left', 'green', False],
+            'IPv4': ['center', 'green', False],
+            }
+        for item in table_properties.items():
+            table.add_column(
+                item[0],
+                justify=item[1][0],
+                style=item[1][1],
+                no_wrap=item[1][2]
+                )
+        for device in range (self.NDevices):
+            table.add_row(
+                str(self.Devices['results'][device]['id']), 
+                self.Devices['results'][device]['name'], 
+                self.Devices['results'][device]['device_type']['model'], 
+                self.Devices['results'][device]['device_role']['name'],
+                self.Devices['results'][device]['primary_ip4']['address']
+                )
+        Console().print(table)
+    def tableVLAN(self):
+        table = Table(title="VLANs")
+        table_properties = {
+            'VID': ['center', 'cyan', True], 
+            'NAME': ['left', 'green', False], 
+            'DESCRIPTION': ['left', 'green', False], 
+            'SITE': ['center', 'green', False]}
+        for item in table_properties.items():
+            table.add_column(
+                item[0],
+                justify=item[1][0],
+                style=item[1][1],
+                no_wrap=item[1][2]
+                )
+        for vlan in range (self.NVlans):
+            table.add_row(
+                str(self.Vlans['results'][vlan]['vid']), 
+                self.Vlans['results'][vlan]['name'], 
+                self.Vlans['results'][vlan]['description'], 
+                self.Vlans['results'][vlan]['site']['name']
+                )
+        Console().print(table)
+
 async def push_vlan_conf(vid,vname,ip,login,pwd):
     vlancli = [
         f'vlan {vid}' , 
@@ -56,12 +125,27 @@ async def push_swint_conf(ifname,ip,login,pwd):
         transport = 'asyncssh'
     ) as swint_conf_conn:
         await swint_conf_conn.send_configs(swintcli)
+
+async def clear_conf(ip,login,pwd):
+    clearcli = [
+        'default interface range gi1/1-3', 
+        'no vlan 101-111'
+        ]
+    async with AsyncIOSXEDriver(
+        host = ip, 
+        auth_username = login, 
+        auth_password = pwd, 
+        auth_strict_key = False, 
+        ssh_config_file = True, 
+        transport = 'asyncssh'
+    ) as clear_conf_conn:
+        await clear_conf_conn.send_configs(clearcli)
     
 def show_cmd(username, password, ip):
     while True:
         try:        
-            cmd = str(input('\nEnter the command or exit/interrupt to end the check procedure. To change the device enter 0(zero): '))
-            if cmd == '0':
+            cmd = str(input('\nExit/exit <- to abort; change device -> 0; type "clear" -> to Clear/clear to clear config: '))
+            if cmd == '0' or cmd == 'clear' or cmd == 'Clear':
                 return cmd
             elif cmd == 'show memory':
                 continue
@@ -96,22 +180,6 @@ def show_cmd(username, password, ip):
             pprint (KI)
             res = 'Interrupted'
             return res
-
-def rest(url,token):
-    headers = {'Content-Type': 'application/json','Accept': 'application/json','Authorization': token}
-    result = requests.request("GET", url, headers=headers).json()
-    return(result)
-
-def create_table(n_vlans,vlans):
-    table_vlans = Table(title="VLANs")
-    table_vlans.add_column("VID", justify="center", style="cyan", no_wrap=True)
-    table_vlans.add_column("NAME", style="magenta")
-    table_vlans.add_column("DESCRIPTION", style="green")
-    table_vlans.add_column("SITE", justify="center", style="blue")
-    for i in range (n_vlans):
-        table_vlans.add_row(str(vlans['results'][i]['vid']), vlans['results'][i]['name'], vlans['results'][i]['description'], vlans['results'][i]['site']['name'])
-    console = Console()
-    console.print(table_vlans)
 
 def check_ip(ip_address_list):
     while True:
@@ -151,40 +219,27 @@ def check_availability(ip):
         pingresult = ip + ' is Unavailable'
         print(pingresult)
 
-async def main(login,pwd,token):
+async def main(login,pwd,token,url_ip):
 
-    pprint('STEP1: RETREIVING DEVICE INFORMATION')
-    url_devices = "http://192.168.246.130:8000/api/dcim/devices/"
-    devices = rest(url_devices,token) #Retreive device information from NetBox
-    n_devices = len(devices['results'])
-    pprint(f'number of devices defined in NetBox: {n_devices}')
+    netbox = NetBox(token,url_ip)
+    devices_info = netbox.getDevices()
+    vlans_info = netbox.getVLANS()
 
-    pprint('STEP2: GENERATING IP ADDRESS LIST') # create the list of IP addresses
-    ip_addr_list = []
-    for i in range (n_devices):
-        ip = devices['results'][i]['primary_ip4']['address']
-        ip_addr_list.append(ip[:-3])
-    pprint(f'The list of ip addresses: {ip_addr_list}') # pprint(type(ip_addr_list[0])) --> check for the list element type, must be string
-
-    pprint('STEP3: GENERATING VLAN TABLE')
-    url_vlans = "http://192.168.246.130:8000/api/ipam/vlans/"
-    vlans = rest(url_vlans,token) #Retreive VLAN information from NetBox and display result in table view
-    n_vlans = len(vlans['results'])
-    pprint(f'number of VLANs defined in NetBox: {n_vlans}')
-    create_table(n_vlans,vlans)
-
+    pprint('STEP1: RETREIVING DEVICE INFORMATION AND GENERATING TABLE')
+    pprint(f'number of devices defined in NetBox: {devices_info[0]}')
+    netbox.tableDevices()
+    pprint('STEP3: GENERATING IP ADDRESS LIST') # create the list of IP addresses
+    pprint(devices_info[2])
+    pprint('STEP2: RETREIVING VLAN INFORMATION AND GENERATING TABLE')
+    pprint(f'number of VLANs defined in NetBox: {vlans_info[0]}')
+    netbox.tableVLAN()
     pprint('STEP4: GENERATING VLAN LISTS')
-    vlans_id_list = []
-    vlans_name_list = []
-    for vid,vname in zip(range(n_vlans),range(n_vlans)): #Generating 2 lists with VLAN IDs and names
-        vlans_id_list.append(vlans['results'][vid]['vid'])
-        vlans_name_list.append(vlans['results'][vname]['name'])
-    print(vlans_id_list)
-    print(vlans_name_list)
+    print(vlans_info[2])
+    print(vlans_info[3])
 
     pprint('STEP5: SCANNING FOR IP ADDRESS AVAILABILITY')
     up_dev_list = []
-    for ip in ip_addr_list:
+    for ip in devices_info[2]:
         check_ip_result = check_availability(ip)
         if check_ip_result != None:
             up_dev_list.append(check_ip_result) #IP address availability scan 
@@ -192,7 +247,7 @@ async def main(login,pwd,token):
     print(up_dev_list)
 
     pprint('STEP6: PUSH VLAN CONFIGURATION')
-    for vid,vname in zip(vlans_id_list,vlans_name_list):
+    for vid,vname in zip(vlans_info[2],vlans_info[3]):
         pprint(f'PUSHING {vname} ON SWITCHES')
         coroutines = [push_vlan_conf(vid,vname,ip,login,pwd) for ip in up_dev_list]
         await asyncio.gather(*coroutines)
@@ -215,14 +270,18 @@ async def main(login,pwd,token):
                 print('\nChanging device ip address')
             elif dev_show == 'Ended' or dev_show == 'Interrupted':
                 sys.exit()
+            elif dev_show == 'Clear' or dev_show == 'clear':
+                coroutines = [clear_conf(ipv4,login,pwd) for ipv4 in up_dev_list]
+                await asyncio.gather(*coroutines)
 
 if __name__ == "__main__":
 
     logging.basicConfig(filename="ntbx_scrapli.log", level=logging.DEBUG)
     logger = logging.getLogger("scrapli")
     token = 'Token 0123456789abcdef0123456789abcdef01234567'
+    netboxIPv4 = '192.168.246.130'
 
     pprint('PROVIDE ADMIN CREDENTIALS') #Define admin credentials
     username = input('Login: ')
     password = getpass.getpass('Password: ')
-    asyncio.run(main(username,password,token))
+    asyncio.run(main(username,password,token,netboxIPv4))
