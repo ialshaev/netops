@@ -26,18 +26,23 @@ class ReExecute(Exception):
 
 class NetBox():
     def __init__(self,token,url):
-        self.url = url
-        self.headers = {'Content-Type': 'application/json','Accept': 'application/json','Authorization': token}
+        self._url = url
+        self._headers = {'Content-Type': 'application/json','Accept': 'application/json','Authorization': token}
+        # private membership (Dunder) used in order to make 'url' and 'header' attributes unique (mainly for learning purpose)
+
+    @property #property decorators used in order to call methods withour paranthesis () - like netbox.getDevices()
     def getDevices(self):
-        self.Devices = requests.request("GET", f"http://{self.url}:8000/api/dcim/devices/", headers=self.headers).json()
+        self.Devices = requests.request("GET", f"http://{self._url}:8000/api/dcim/devices/", headers=self._headers).json()
         self.NDevices = self.Devices['count']
         DeviceListIPv4 = []
         for device in range (self.NDevices):
             ipv4 = self.Devices['results'][device]['primary_ip4']['address']
             DeviceListIPv4.append(ipv4[:-3])
         return self.NDevices, self.Devices, DeviceListIPv4
+
+    @property
     def getVLANS(self):
-        self.Vlans = requests.request("GET", f"http://{self.url}:8000/api/ipam/vlans/", headers=self.headers).json()
+        self.Vlans = requests.request("GET", f"http://{self._url}:8000/api/ipam/vlans/", headers=self._headers).json()
         self.NVlans = len(self.Vlans['results'])
         VIDList = []
         VNameList = []
@@ -45,6 +50,8 @@ class NetBox():
             VIDList.append(self.Vlans['results'][vid]['vid'])
             VNameList.append(self.Vlans['results'][vname]['name'])
         return self.NVlans, self.Vlans, VIDList, VNameList
+
+    @property
     def tableDevices(self):
         table = Table(title="Devices")
         table_properties = { 
@@ -70,6 +77,8 @@ class NetBox():
                 self.Devices['results'][device]['primary_ip4']['address']
                 )
         Console().print(table)
+
+    @property
     def tableVLAN(self):
         table = Table(title="VLANs")
         table_properties = {
@@ -222,17 +231,17 @@ def check_availability(ip):
 async def main(login,pwd,token,url_ip):
 
     netbox = NetBox(token,url_ip)
-    devices_info = netbox.getDevices()
-    vlans_info = netbox.getVLANS()
+    devices_info = netbox.getDevices
+    vlans_info = netbox.getVLANS
 
     pprint('STEP1: RETREIVING DEVICE INFORMATION AND GENERATING TABLE')
     pprint(f'number of devices defined in NetBox: {devices_info[0]}')
-    netbox.tableDevices()
+    netbox.tableDevices
     pprint('STEP3: GENERATING IP ADDRESS LIST') # create the list of IP addresses
     pprint(devices_info[2])
     pprint('STEP2: RETREIVING VLAN INFORMATION AND GENERATING TABLE')
     pprint(f'number of VLANs defined in NetBox: {vlans_info[0]}')
-    netbox.tableVLAN()
+    netbox.tableVLAN
     pprint('STEP4: GENERATING VLAN LISTS')
     print(vlans_info[2])
     print(vlans_info[3])
