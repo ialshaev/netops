@@ -9,3 +9,6 @@ config_wizard/ntbx_scrapli.log
 netmap/img/topology.*
 netmap/img/topology
 config_wizard/*_learning.py
+netmap/topology_random.py
+netmap/topology_random.yaml
+netmap/yaml_to_dict_learning.py
