@@ -1,6 +1,7 @@
 bin/
 lib/
 pyvenv.cfg
+.Python
 lib64/
 __pycache__/
 neighcollector/output.txt
