@@ -2,6 +2,7 @@ bin/
 lib/
 pyvenv.cfg
 .Python
+.DS_Store
 lib64/
 __pycache__/
 neighcollector/output.txt
